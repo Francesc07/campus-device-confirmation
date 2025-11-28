@@ -1,0 +1,22 @@
+{
+  "name": "staff-service",
+  "version": "1.0.0",
+  "main": "dist/API/functions/*.js",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf dist",
+    "prestart": "npm run clean && npm run build",
+    "start": "func start --typescript"
+  },
+  "dependencies": {
+    "@azure/cosmos": "^4.6.0",
+    "@azure/functions": "^4.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "18.x",
+    "azure-functions-core-tools": "^4.x",
+    "rimraf": "^5.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^4.0.0"
+  }
+}

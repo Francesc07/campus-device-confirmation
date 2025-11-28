@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "module": "Node16",
+    "moduleResolution": "node16",
+    "target": "es2020",
+    "outDir": "dist",
+    "rootDir": "src",
+    "sourceMap": true,
+    "strict": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
+  },
+  "include": ["src/**/*"]
+}
