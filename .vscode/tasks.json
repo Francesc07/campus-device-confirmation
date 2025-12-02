@@ -9,7 +9,7 @@
       "isBackground": true,
       "dependsOn": "npm watch (functions)",
       "options": {
-        "cwd": "${workspaceFolder}/Services/device-staff"
+        "cwd": "${workspaceFolder}/services/device-confirmation"
       }
     },
     {
@@ -19,7 +19,7 @@
       "dependsOn": "npm clean (functions)",
       "problemMatcher": "$tsc",
       "options": {
-        "cwd": "${workspaceFolder}/Services/device-staff"
+        "cwd": "${workspaceFolder}/services/device-confirmation"
       }
     },
     {
@@ -34,7 +34,7 @@
       },
       "isBackground": true,
       "options": {
-        "cwd": "${workspaceFolder}/Services/device-staff"
+        "cwd": "${workspaceFolder}/services/device-confirmation"
       }
     },
     {
@@ -42,7 +42,7 @@
       "label": "npm install (functions)",
       "command": "npm install",
       "options": {
-        "cwd": "${workspaceFolder}/Services/device-staff"
+        "cwd": "${workspaceFolder}/services/device-confirmation"
       }
     },
     {
@@ -52,7 +52,7 @@
       "dependsOn": "npm build (functions)",
       "problemMatcher": [],
       "options": {
-        "cwd": "${workspaceFolder}/Services/device-staff"
+        "cwd": "${workspaceFolder}/services/device-confirmation"
       }
     },
     {
@@ -61,7 +61,7 @@
       "command": "npm run clean",
       "dependsOn": "npm install (functions)",
       "options": {
-        "cwd": "${workspaceFolder}/Services/device-staff"
+        "cwd": "${workspaceFolder}/services/device-confirmation"
       }
     }
   ]

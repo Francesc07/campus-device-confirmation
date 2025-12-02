@@ -1,5 +1,5 @@
 {
-  "name": "Campus Device Staff DevContainer",
+  "name": "Campus Device confirmation DevContainer",
   "image": "mcr.microsoft.com/devcontainers/typescript-node:1-20",
   "features": {
     "ghcr.io/devcontainers/features/azure-cli:1": {}

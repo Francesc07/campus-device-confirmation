@@ -1,0 +1,30 @@
+{
+  "name": "device-confirmation",
+  "version": "1.0.0",
+  "main": "dist/functionApp.js",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf dist",
+    "watch": "tsc --watch",
+    "prestart": "npm run build",
+    "start": "func start --typescript",
+    "seed:devices": "ts-node tools/seed-device-snapshots.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@azure/cosmos": "^4.6.0",
+    "@azure/eventgrid": "^5.12.0",
+    "@azure/functions": "^4.8.0",
+    "@types/uuid": "^10.0.0",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.1",
+    "rimraf": "^6.0.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
