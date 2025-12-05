@@ -1,4 +1,4 @@
-export interface ListStaffActionsDTO {
+export interface ListConfirmationActionsDTO {
   staffId?: string;
   reservationId?: string;
 }

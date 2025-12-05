@@ -1,37 +1,47 @@
-import { app, HttpRequest, HttpResponseInit } from "@azure/functions";
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
+import { tryHandleEventGridValidation } from "./shared/handleEventGridValidation"; 
+// import { appServices } from "../../appServices"; // uncomment if you later want to persist something
 
-export async function reservationEventsHttp(req: HttpRequest): Promise<HttpResponseInit> {
-  try {
-    const body = (await req.json()) as any;
-    const events = Array.isArray(body) ? body : [body];
+export async function reservationEventsHttp(
+  req: HttpRequest,
+  ctx: InvocationContext
+): Promise<HttpResponseInit> {
+  const events = (await req.json()) as any[];
 
-    for (const evt of events) {
-      const { eventType, data } = evt;
-
-      switch (eventType) {
-        case "Reservation.Confirmed":
-          // 👉 Future: staff dashboard could be updated here.
-          break;
-
-        case "Reservation.Cancelled":
-          // 👉 Future: staff could be notified to free bookings.
-          break;
-
-        default:
-          break;
-      }
-    }
-
-    return { status: 200 };
-  } catch (err: any) {
-    return { status: 500, jsonBody: { error: err.message } };
+  // 1️⃣ Handle Event Grid Subscription Validation
+  const validation = tryHandleEventGridValidation(events, ctx);
+  if (validation) {
+    return validation;
   }
+
+  // 2️⃣ Process actual business events
+  for (const evt of events) {
+    const eventType = evt.eventType || evt.type;
+    const data = evt.data;
+
+    switch (eventType) {
+      case "Reservation.Confirmed":
+        ctx.log("📩 Reservation.Confirmed received in Confirmation Service", data);
+        // 🔜 In future: persist reservation snapshot for staff dashboard if needed.
+        break;
+
+      case "Reservation.Cancelled":
+        ctx.log("📩 Reservation.Cancelled received in Confirmation Service", data);
+        // 🔜 In future: remove from staff pending list, etc.
+        break;
+
+      default:
+        ctx.log(`ℹ️ Ignoring unsupported eventType in Confirmation Service: ${eventType}`);
+        break;
+    }
+  }
+
+  return { status: 200 };
 }
 
 app.http("reservation-events-http", {
   methods: ["POST"],
   route: "events/reservations",
   authLevel: "anonymous",
-  handler: reservationEventsHttp,
+  handler: reservationEventsHttp
 });
-

@@ -3,6 +3,8 @@
 # ============================
 #   MULTI-ENV LOCAL SETTINGS POPULATOR
 # ============================
+# Make the file executable
+# chmod +x populate-env.sh
 
 # Usage:
 #   ./populate-env.sh dev

@@ -1,31 +1,44 @@
-import { CosmosStaffActionRepository } from "./Infrastructure/Persistence/CosmosStaffActionRepository";
-import { EventPublisher } from "./Infrastructure/EventGrid/StaffEventPublisher";
+import { CosmosConfirmationActionRepository } from "./Infrastructure/Persistence/CosmosConfirmationActionRepository";
+import { ConfirmationEventPublisher } from "./Infrastructure/EventGrid/ConfirmationEventPublisher";
 
-// Use Cases
 import { ConfirmCollectionUseCase } from "./Application/UseCases/ConfirmCollectionUseCase";
 import { ConfirmReturnUseCase } from "./Application/UseCases/ConfirmReturnUseCase";
-import { ListStaffActionsUseCase } from "./Application/UseCases/ListStaffActionsUseCase";
+import { ListConfirmationActionsUseCase } from "./Application/UseCases/ListConfirmationActionsUseCase";
 
-// Handlers
 import { ConfirmCollectionHandler } from "./Application/Handlers/ConfirmCollectionHandler";
 import { ConfirmReturnHandler } from "./Application/Handlers/ConfirmReturnHandler";
-import { ListStaffActionsHandler } from "./Application/Handlers/ListStaffActionsHandler";
+import { ListConfirmationActionsHandler } from "./Application/Handlers/ListConfirmationActionsHandler";
 
-// Instantiate infra layer
-const repository = new CosmosStaffActionRepository();
-const publisher = new EventPublisher();
+const confirmationRepo = new CosmosConfirmationActionRepository();
+const eventPublisher = new ConfirmationEventPublisher(); // reads EVENTGRID_CATALOG_TOPIC_* env vars
 
-// Wire UseCases + Handlers
+const confirmCollectionUseCase = new ConfirmCollectionUseCase(
+  confirmationRepo,
+  eventPublisher
+);
+
+const confirmReturnUseCase = new ConfirmReturnUseCase(
+  confirmationRepo,
+  eventPublisher
+);
+
+const listConfirmationActionsUseCase = new ListConfirmationActionsUseCase(
+  confirmationRepo
+);
+
+const confirmCollectionHandler = new ConfirmCollectionHandler(confirmCollectionUseCase);
+const confirmReturnHandler = new ConfirmReturnHandler(confirmReturnUseCase);
+const listConfirmationActionsHandler = new ListConfirmationActionsHandler(
+  listConfirmationActionsUseCase
+);
+
 export const appServices = {
-  confirmCollectionHandler: new ConfirmCollectionHandler(
-    new ConfirmCollectionUseCase(repository, publisher)
-  ),
-
-  confirmReturnHandler: new ConfirmReturnHandler(
-    new ConfirmReturnUseCase(repository, publisher)
-  ),
-
-  listStaffActionsHandler: new ListStaffActionsHandler(
-    new ListStaffActionsUseCase(repository)
-  ),
+  confirmationRepo,
+  eventPublisher,
+  confirmCollectionUseCase,
+  confirmReturnUseCase,
+  listConfirmationActionsUseCase,
+  confirmCollectionHandler,
+  confirmReturnHandler,
+  listConfirmationActionsHandler
 };

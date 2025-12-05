@@ -1,37 +1,39 @@
-import { IStaffActionRepository } from "../Interfaces/IStaffActionRepository";
+import { IConfirmationActionRepository } from "../Interfaces/IConfirmationActionRepository";
 import { ConfirmCollectionDTO } from "../Dtos/ConfirmCollectionDTO";
-import { StaffAction } from "../../Domain/Entities/StaffAction";
-import { StaffActionType } from "../../Domain/Enums/StaffActionType";
-import { EventPublisher } from "../../Infrastructure/EventGrid/StaffEventPublisher";
+import { ConfirmationAction } from "../../Domain/Entities/ConfirmationAction";
+import { ConfirmationActionType } from "../../Domain/Enums/ConfirmationActionType";
+import { ConfirmationEventPublisher } from "../../Infrastructure/EventGrid/ConfirmationEventPublisher";
 import { randomUUID } from "crypto";
 
 export class ConfirmCollectionUseCase {
   constructor(
-    private readonly repository: IStaffActionRepository,
-    private readonly publisher: EventPublisher
+    private readonly repository: IConfirmationActionRepository,
+    private readonly publisher: ConfirmationEventPublisher
   ) {}
 
-  async execute(data: ConfirmCollectionDTO): Promise<StaffAction> {
+  async execute(data: ConfirmCollectionDTO): Promise<ConfirmationAction> {
     const { staffId, reservationId, deviceId, notes } = data;
 
     if (!staffId || !reservationId || !deviceId) {
       throw new Error("staffId, reservationId, and deviceId are required.");
     }
 
-    const action: StaffAction = {
+    const action: ConfirmationAction = {
       id: randomUUID(),
       staffId,
       reservationId,
       deviceId,
-      actionType: StaffActionType.CollectionConfirmed,
+      actionType: ConfirmationActionType.Collected,
       timestamp: new Date().toISOString(),
       notes
     };
 
     const saved = await this.repository.create(action);
 
-    // 🔥 Publish outbound event
-    await this.publisher.publishStaffEvent("Staff.CollectionConfirmed", saved);
+    await this.publisher.publish({
+      eventType: "Confirmation.Collected",
+      data: saved
+    });
 
     return saved;
   }
