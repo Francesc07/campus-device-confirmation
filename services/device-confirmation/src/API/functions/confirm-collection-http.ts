@@ -22,7 +22,8 @@ export async function confirmCollectionHttp(
       staffId,
       reservationId,
       deviceId,
-      notes
+      notes,
+      ctx
     );
 
     ctx.log("✅ Collection confirmed", { staffId, reservationId, deviceId });

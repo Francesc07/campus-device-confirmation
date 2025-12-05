@@ -1,6 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { tryHandleEventGridValidation } from "./shared/handleEventGridValidation"; 
-// import { appServices } from "../../appServices"; // uncomment if you later want to persist something
+import { appServices } from "../../appServices";
+import { ReservationSnapshot } from "../../Domain/Entities/ReservationSnapshot";
 
 export async function reservationEventsHttp(
   req: HttpRequest,
@@ -22,12 +23,31 @@ export async function reservationEventsHttp(
     switch (eventType) {
       case "Reservation.Confirmed":
         ctx.log("📩 Reservation.Confirmed received in Confirmation Service", data);
-        // 🔜 In future: persist reservation snapshot for staff dashboard if needed.
+        
+        // Save reservation snapshot for staff to see in their dashboard
+        const snapshot: ReservationSnapshot = {
+          reservationId: data.reservationId,
+          deviceId: data.deviceId,
+          userId: data.userId,
+          startDate: data.startDate,
+          dueDate: data.dueDate,
+          status: "PendingCollection",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        await appServices.snapshotRepo.save(snapshot);
+        ctx.log("✅ Saved reservation snapshot for staff dashboard", { reservationId: data.reservationId });
         break;
 
       case "Reservation.Cancelled":
         ctx.log("📩 Reservation.Cancelled received in Confirmation Service", data);
-        // 🔜 In future: remove from staff pending list, etc.
+        // Update status or delete the snapshot
+        const existing = await appServices.snapshotRepo.getByReservationId(data.reservationId);
+        if (existing) {
+          await appServices.snapshotRepo.updateStatus(data.reservationId, "Returned");
+          ctx.log("✅ Updated cancelled reservation status", { reservationId: data.reservationId });
+        }
         break;
 
       default:

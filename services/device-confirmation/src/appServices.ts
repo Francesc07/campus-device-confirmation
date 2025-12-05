@@ -8,18 +8,25 @@ import { ListConfirmationActionsUseCase } from "./Application/UseCases/ListConfi
 import { ConfirmCollectionHandler } from "./Application/Handlers/ConfirmCollectionHandler";
 import { ConfirmReturnHandler } from "./Application/Handlers/ConfirmReturnHandler";
 import { ListConfirmationActionsHandler } from "./Application/Handlers/ListConfirmationActionsHandler";
+import { CosmosReservationSnapshotRepository } from "./Infrastructure/Persistence/CosmosReservationSnapshotRepository";
 
 const confirmationRepo = new CosmosConfirmationActionRepository();
-const eventPublisher = new ConfirmationEventPublisher(); // reads EVENTGRID_CATALOG_TOPIC_* env vars
+const snapshotRepo = new CosmosReservationSnapshotRepository();
+const eventPublisher = new ConfirmationEventPublisher(
+  process.env.EVENTGRID_TOPIC_ENDPOINT!,
+  process.env.EVENTGRID_TOPIC_KEY!
+);
 
 const confirmCollectionUseCase = new ConfirmCollectionUseCase(
   confirmationRepo,
-  eventPublisher
+  eventPublisher,
+  snapshotRepo
 );
 
 const confirmReturnUseCase = new ConfirmReturnUseCase(
   confirmationRepo,
-  eventPublisher
+  eventPublisher,
+  snapshotRepo
 );
 
 const listConfirmationActionsUseCase = new ListConfirmationActionsUseCase(
@@ -33,6 +40,7 @@ const listConfirmationActionsHandler = new ListConfirmationActionsHandler(
 );
 
 export const appServices = {
+  snapshotRepo,
   confirmationRepo,
   eventPublisher,
   confirmCollectionUseCase,

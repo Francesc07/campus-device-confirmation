@@ -22,7 +22,8 @@ export async function confirmReturnHttp(
       staffId,
       reservationId,
       deviceId,
-      notes
+      notes,
+      ctx
     );
 
     ctx.log("✅ Return confirmed", { staffId, reservationId, deviceId });

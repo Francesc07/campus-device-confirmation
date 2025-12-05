@@ -48,11 +48,14 @@ export const environment = {
   cosmos: {
     connectionString: getEnv("COSMOS_DB_CONNECTION_STRING"),
     databaseName: getEnv("COSMOS_DB_DATABASE_NAME"),
-    containerName: getEnv("COSMOS_DB_CONTAINER_NAME")
+    containerName: getEnv("COSMOS_DB_CONTAINER_NAME"),
+    snapshotContainer: "ReservationSnapshots"
   },
 
   eventGrid: {
     confirmEndpoint: getEnv("EVENTGRID_TOPIC_ENDPOINT"),
     confirmKey: getEnv("EVENTGRID_TOPIC_KEY")
   }
+  
 };
+
