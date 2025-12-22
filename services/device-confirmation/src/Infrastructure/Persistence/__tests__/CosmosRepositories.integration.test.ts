@@ -1,5 +1,3 @@
-import { CosmosConfirmationActionRepository } from "../CosmosConfirmationActionRepository";
-import { CosmosReservationSnapshotRepository } from "../CosmosReservationSnapshotRepository";
 import { ConfirmationAction } from "../../../Domain/Entities/ConfirmationAction";
 import { ReservationSnapshot } from "../../../Domain/Entities/ReservationSnapshot";
 import { ConfirmationActionType } from "../../../Domain/Enums/ConfirmationActionType";
@@ -7,21 +5,31 @@ import { randomUUID } from "crypto";
 
 /**
  * Integration tests for Cosmos DB repositories
- * These tests use real Cosmos DB connections but can be skipped in CI
- * Set INTEGRATION_TEST=true to run these tests
+ * These tests use real Cosmos DB connections and are SKIPPED in CI
+ * 
+ * To run integration tests locally:
+ * 1. Ensure environment variables are set (AUTH0_DOMAIN, AUTH0_AUDIENCE, COSMOS_DB_*, etc.)
+ * 2. Remove .skip from describe.skip below
+ * 3. Run: npm test -- CosmosRepositories.integration.test.ts
+ * 
+ * These tests are skipped by default to prevent CI failures when environment variables aren't available.
  */
 const shouldRunIntegrationTests = process.env.INTEGRATION_TEST === "true";
 
 describe.skip("Cosmos DB Integration Tests", () => {
-  let confirmationRepo: CosmosConfirmationActionRepository;
-  let snapshotRepo: CosmosReservationSnapshotRepository;
+  let confirmationRepo: any;
+  let snapshotRepo: any;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     if (!shouldRunIntegrationTests) {
       console.log("Skipping integration tests. Set INTEGRATION_TEST=true to run.");
       return;
     }
 
+    // Dynamically import repositories only when needed to avoid environment variable errors
+    const { CosmosConfirmationActionRepository } = await import("../CosmosConfirmationActionRepository");
+    const { CosmosReservationSnapshotRepository } = await import("../CosmosReservationSnapshotRepository");
+    
     confirmationRepo = new CosmosConfirmationActionRepository();
     snapshotRepo = new CosmosReservationSnapshotRepository();
   });
