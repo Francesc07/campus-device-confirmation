@@ -20,6 +20,7 @@ describe("ConfirmCollectionUseCase", () => {
       listByReservation: jest.fn(),
       listByStaff: jest.fn(),
       listByFilter: jest.fn(),
+      findByReservationId: jest.fn().mockResolvedValue([]),
     } as any;
 
     mockSnapshotRepo = {

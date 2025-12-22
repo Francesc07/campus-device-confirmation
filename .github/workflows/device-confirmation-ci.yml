@@ -1,0 +1,264 @@
+name: Device Confirmation - CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'services/device-confirmation/**'
+      - '.github/workflows/device-confirmation-ci.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'services/device-confirmation/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deploy to specific environment'
+        required: true
+        type: choice
+        options:
+          - dev
+          - test
+          - prod
+
+env:
+  NODE_VERSION: '22.x'
+  SERVICE_PATH: './services/device-confirmation'
+
+jobs:
+  # ======================================================
+  # 🧪 TEST JOB
+  # ======================================================
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.SERVICE_PATH }}/package-lock.json
+
+      - name: 🧹 Clean cache and build directories
+        working-directory: ${{ env.SERVICE_PATH }}
+        run: |
+          rm -rf node_modules/.cache
+          rm -rf dist
+          npm cache clean --force || true
+
+      - name: 📦 Install dependencies
+        working-directory: ${{ env.SERVICE_PATH }}
+        run: npm ci
+
+      - name: 🏗️ Build application
+        working-directory: ${{ env.SERVICE_PATH }}
+        run: npm run build
+
+      - name: 🧪 Run all tests
+        working-directory: ${{ env.SERVICE_PATH }}
+        run: npm test -- --ci --maxWorkers=2
+
+      - name: 📊 Generate coverage report
+        if: always()
+        working-directory: ${{ env.SERVICE_PATH }}
+        run: npm test -- --coverage --ci --maxWorkers=2
+
+      - name: 📦 Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: device-confirmation-coverage
+          path: ${{ env.SERVICE_PATH }}/coverage
+          retention-days: 7
+
+  # ======================================================
+  # 🏗️ BUILD JOB
+  # ======================================================
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.SERVICE_PATH }}/package-lock.json
+
+      - name: 🧹 Clean build directories
+        working-directory: ${{ env.SERVICE_PATH }}
+        run: rm -rf dist node_modules/.cache
+
+      - name: 📦 Install dependencies
+        working-directory: ${{ env.SERVICE_PATH }}
+        run: npm ci
+
+      - name: 🏗️ Build application
+        working-directory: ${{ env.SERVICE_PATH }}
+        run: npm run build
+
+      - name: 🔒 Security audit
+        working-directory: ${{ env.SERVICE_PATH }}
+        run: npm audit --audit-level=high || true
+
+      - name: 📦 Package for deployment
+        working-directory: ${{ env.SERVICE_PATH }}
+        run: |
+          # Install only production dependencies
+          npm ci --production
+          
+          echo "✅ Deployment package ready with dist/, node_modules/, package.json, and host.json"
+
+      - name: 📤 Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: device-confirmation-build
+          path: ${{ env.SERVICE_PATH }}
+          retention-days: 30
+
+  # ======================================================
+  # 🚀 DEPLOY DEV ENV
+  # ======================================================
+  deploy-dev:
+    name: Deploy to DEV
+    runs-on: ubuntu-latest
+    needs: build
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
+    environment:
+      name: dev
+      url: https://deviceconfirmation-dev-ab07-func.azurewebsites.net
+
+    steps:
+      - name: 📥 Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: device-confirmation-build
+          path: ./device-confirmation
+
+      - name: 🔐 Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: 📦 Install Azure Functions Core Tools
+        run: |
+          wget -q https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb
+          sudo dpkg -i packages-microsoft-prod.deb
+          sudo apt-get update
+          sudo apt-get install -y azure-functions-core-tools-4
+
+      - name: 🚀 Deploy to DEV Function App
+        working-directory: ./device-confirmation
+        run: |
+          func azure functionapp publish deviceconfirmation-dev-ab07-func --typescript
+
+      - name: 🔍 DEV Health Check
+        run: |
+          echo "Waiting for DEV to warm up..."
+          sleep 30
+          echo "⚠️ Health check endpoint not yet implemented"
+
+  # ======================================================
+  # 🚀 DEPLOY TEST
+  # ======================================================
+  deploy-test:
+    name: Deploy to TEST
+    runs-on: ubuntu-latest
+    needs: build
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'test')
+    environment:
+      name: test
+      url: https://deviceconfirmation-test-ab07-func.azurewebsites.net
+
+    steps:
+      - name: 📥 Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: device-confirmation-build
+          path: ./device-confirmation
+
+      - name: 🔐 Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: 📦 Install Azure Functions Core Tools
+        run: |
+          wget -q https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb
+          sudo dpkg -i packages-microsoft-prod.deb
+          sudo apt-get update
+          sudo apt-get install -y azure-functions-core-tools-4
+
+      - name: 🚀 Deploy to TEST Function App
+        working-directory: ./device-confirmation
+        run: |
+          func azure functionapp publish deviceconfirmation-test-ab07-func --typescript
+
+      - name: 🔍 TEST Health Check
+        run: |
+          echo "Waiting for TEST to warm up..."
+          sleep 30
+          echo "⚠️ Health check endpoint not yet implemented"
+
+  # ======================================================
+  # 🚀 DEPLOY PROD (MANUAL ONLY - REQUIRES APPROVAL)
+  # ======================================================
+  deploy-prod:
+    name: Deploy to PROD (Requires Approval)
+    runs-on: ubuntu-latest
+    needs: [build, deploy-test]
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'
+    environment:
+      name: production
+      url: https://deviceconfirmation-prod-ab07-func.azurewebsites.net
+
+    steps:
+      - name: 📥 Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: device-confirmation-build
+          path: ./device-confirmation
+
+      - name: 🔐 Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: 📦 Install Azure Functions Core Tools
+        run: |
+          wget -q https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb
+          sudo dpkg -i packages-microsoft-prod.deb
+          sudo apt-get update
+          sudo apt-get install -y azure-functions-core-tools-4
+
+      - name: 🚀 Deploy to PROD Function App
+        working-directory: ./device-confirmation
+        run: |
+          func azure functionapp publish deviceconfirmation-prod-ab07-func --typescript
+
+      - name: 🔍 PROD Health Check
+        run: |
+          echo "Waiting for PROD to warm up..."
+          sleep 45
+          echo "⚠️ Health check endpoint not yet implemented - consider adding one for production monitoring"
+
+      - name: 📢 Deployment Summary
+        run: |
+          echo "🎉 Production deployment completed!"
+          echo "URL: https://deviceconfirmation-prod-ab07-func.azurewebsites.net"
+          echo "Commit: ${{ github.sha }}"
+          echo "Actor: ${{ github.actor }}"

@@ -17,7 +17,9 @@ export class CosmosReservationSnapshotRepository
   }
 
   async save(snapshot: ReservationSnapshot): Promise<void> {
-    await this.container.items.upsert(snapshot);
+    // Ensure id field matches reservationId for Cosmos DB
+    const doc = { ...snapshot, id: snapshot.reservationId };
+    await this.container.items.upsert(doc);
   }
 
   async getByReservationId(
@@ -50,16 +52,91 @@ export class CosmosReservationSnapshotRepository
     return resources;
   }
 
+  async listCollected(): Promise<ReservationSnapshot[]> {
+    const query = {
+      query: "SELECT * FROM c WHERE c.status = 'Collected'",
+    };
+
+    const { resources } = await this.container.items.query(query).fetchAll();
+    return resources;
+  }
+
+  async listReturned(): Promise<ReservationSnapshot[]> {
+    const query = {
+      query: "SELECT * FROM c WHERE c.status = 'Returned'",
+    };
+
+    const { resources } = await this.container.items.query(query).fetchAll();
+    return resources;
+  }
+
+  async listAll(): Promise<ReservationSnapshot[]> {
+    const query = {
+      query: "SELECT * FROM c ORDER BY c.createdAt DESC",
+    };
+
+    const { resources } = await this.container.items.query(query).fetchAll();
+    return resources;
+  }
+
   async updateStatus(
     reservationId: string,
     status: "PendingCollection" | "Collected" | "PendingReturn" | "Returned"
   ): Promise<void> {
-    const snapshot = await this.getByReservationId(reservationId);
-    if (!snapshot) return;
+    const MAX_RETRIES = 3;
+    let attempt = 0;
 
-    snapshot.status = status;
-    snapshot.updatedAt = new Date().toISOString();
+    while (attempt < MAX_RETRIES) {
+      try {
+        // Get snapshot with _etag for optimistic concurrency control
+        const query = {
+          query: "SELECT * FROM c WHERE c.reservationId = @reservationId",
+          parameters: [{ name: "@reservationId", value: reservationId }],
+        };
+        const { resources } = await this.container.items.query(query).fetchAll();
+        
+        if (resources.length === 0) {
+          const errorMsg = `No snapshot found for reservationId: ${reservationId}. Cannot update status to ${status}.`;
+          console.error(errorMsg);
+          throw new Error(errorMsg);
+        }
 
-    await this.container.items.upsert(snapshot);
+        const snapshot = resources[0] as ReservationSnapshot & { id?: string; _etag?: string };
+        const etag = snapshot._etag;
+        const docId = snapshot.id || reservationId; // Use document's id field
+
+        // Update snapshot
+        snapshot.status = status;
+        snapshot.updatedAt = new Date().toISOString();
+
+        // Use replace with etag for optimistic concurrency control
+        // Note: reservationId is used as partition key, docId is the document id
+        if (etag) {
+          await this.container
+            .item(docId, reservationId)
+            .replace(snapshot, { accessCondition: { type: "IfMatch", condition: etag } });
+        } else {
+          // Fallback to upsert if no etag
+          const doc = { ...snapshot, id: docId };
+          await this.container.items.upsert(doc);
+        }
+
+        // Success - exit retry loop
+        return;
+      } catch (error: any) {
+        // Handle concurrency conflict (412 Precondition Failed)
+        if (error.code === 412) {
+          attempt++;
+          if (attempt >= MAX_RETRIES) {
+            throw new Error(`Failed to update status after ${MAX_RETRIES} retries due to concurrency conflicts`);
+          }
+          // Wait before retry with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+          continue;
+        }
+        // Other errors - throw immediately
+        throw error;
+      }
+    }
   }
 }

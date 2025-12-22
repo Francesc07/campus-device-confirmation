@@ -1,19 +1,32 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { appServices } from "../../appServices";
+import { requireAuth } from "../../Infrastructure/Auth/auth0Validation";
 
 export async function confirmCollectionHttp(
   req: HttpRequest,
   ctx: InvocationContext
 ): Promise<HttpResponseInit> {
+  // 🔐 Authenticate and authorize staff member
+  const authResult = await requireAuth(req, ctx, ["staff:confirm"]);
+  if ("status" in authResult && typeof authResult.status === "number") {
+    return authResult as HttpResponseInit; // Return 401/403 response
+  }
+  
+  const authenticatedUser = authResult as import("../../Infrastructure/Auth/auth0Validation").AuthenticatedUser;
+  ctx.log("🔐 Authenticated staff", { sub: authenticatedUser.sub, permissions: authenticatedUser.permissions });
+
   try {
     const body = (await req.json()) as any;
-    const { staffId, reservationId, deviceId, notes } = body;
+    const { reservationId, deviceId, notes } = body;
 
-    if (!staffId || !reservationId || !deviceId) {
+    // Use authenticated user's ID as staffId
+    const staffId = authenticatedUser.sub!;
+
+    if (!reservationId || !deviceId) {
       return {
         status: 400,
         jsonBody: {
-          error: "staffId, reservationId, and deviceId are required."
+          error: "reservationId and deviceId are required."
         }
       };
     }

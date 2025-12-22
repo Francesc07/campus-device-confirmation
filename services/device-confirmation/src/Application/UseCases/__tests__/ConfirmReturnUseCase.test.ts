@@ -19,6 +19,14 @@ describe("ConfirmReturnUseCase", () => {
       listByReservation: jest.fn(),
       listByStaff: jest.fn(),
       listByFilter: jest.fn(),
+      findByReservationId: jest.fn().mockResolvedValue([{
+        id: 'collected-action-123',
+        reservationId: 'res-123',
+        deviceId: 'dev-456',
+        staffId: 'staff-789',
+        actionType: ConfirmationActionType.Collected,
+        timestamp: new Date().toISOString(),
+      }]),
     } as any;
 
     mockSnapshotRepo = {
@@ -108,6 +116,15 @@ describe("ConfirmReturnUseCase", () => {
         timestamp: expect.any(String),
       };
 
+      // Override default mock to simulate collection already confirmed for this test
+      mockRepository.findByReservationId.mockResolvedValue([{
+        id: 'collected-action-456',
+        reservationId: dto.reservationId,
+        deviceId: dto.deviceId,
+        staffId: 'staff-001',
+        actionType: ConfirmationActionType.Collected,
+        timestamp: new Date().toISOString(),
+      }]);
       mockRepository.create.mockResolvedValue(expectedAction);
       mockSnapshotRepo.updateStatus.mockResolvedValue();
       mockPublisher.publish.mockResolvedValue();

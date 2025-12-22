@@ -45,6 +45,11 @@ function getEnv(baseVar: string): string {
 export const environment = {
   name: activeEnv,
 
+  auth0: {
+    domain: getEnv("AUTH0_DOMAIN"),
+    audience: getEnv("AUTH0_AUDIENCE"),
+  },
+
   cosmos: {
     connectionString: getEnv("COSMOS_DB_CONNECTION_STRING"),
     databaseName: getEnv("COSMOS_DB_DATABASE_NAME"),

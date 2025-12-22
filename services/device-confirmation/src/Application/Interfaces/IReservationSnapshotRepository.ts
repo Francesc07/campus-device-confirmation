@@ -9,6 +9,12 @@ export interface IReservationSnapshotRepository {
 
   listPendingReturns(): Promise<ReservationSnapshot[]>;
 
+  listCollected(): Promise<ReservationSnapshot[]>;
+
+  listReturned(): Promise<ReservationSnapshot[]>;
+
+  listAll(): Promise<ReservationSnapshot[]>;
+
   updateStatus(
     reservationId: string,
     status: "PendingCollection" | "Collected" | "PendingReturn" | "Returned"
