@@ -168,7 +168,7 @@ jobs:
         run: |
           echo "Waiting for DEV to warm up..."
           sleep 30
-          echo "⚠️ Health check endpoint not yet implemented"
+          curl -f https://deviceconfirmation-dev-ab07-func.azurewebsites.net/api/health || echo "⚠️ DEV health check failed"
 
   # ======================================================
   # 🚀 DEPLOY TEST
@@ -212,7 +212,7 @@ jobs:
         run: |
           echo "Waiting for TEST to warm up..."
           sleep 30
-          echo "⚠️ Health check endpoint not yet implemented"
+          curl -f https://deviceconfirmation-test-ab07-func.azurewebsites.net/api/health || echo "⚠️ TEST health check failed"
 
   # ======================================================
   # 🚀 DEPLOY PROD (MANUAL ONLY - REQUIRES APPROVAL)
@@ -254,7 +254,7 @@ jobs:
         run: |
           echo "Waiting for PROD to warm up..."
           sleep 45
-          echo "⚠️ Health check endpoint not yet implemented - consider adding one for production monitoring"
+          curl -f https://deviceconfirmation-prod-ab07-func.azurewebsites.net/api/health || exit 1
 
       - name: 📢 Deployment Summary
         run: |
