@@ -42,6 +42,15 @@ function getEnv(baseVar: string): string {
   return value;
 }
 
+/**
+ * Helper to load optional environment variables
+ */
+function getEnvOptional(baseVar: string): string | undefined {
+  const prefix = activeEnv === "local" ? "" : `${activeEnv.toUpperCase()}_`;
+
+  return process.env[`${prefix}${baseVar}`] || process.env[baseVar];
+}
+
 export const environment = {
   name: activeEnv,
 
@@ -60,7 +69,11 @@ export const environment = {
   eventGrid: {
     confirmEndpoint: getEnv("EVENTGRID_TOPIC_ENDPOINT"),
     confirmKey: getEnv("EVENTGRID_TOPIC_KEY")
-  }
+  },
+
+  // SendGrid Email Configuration (optional)
+  SENDGRID_API_KEY: getEnvOptional("SENDGRID_API_KEY"),
+  SENDGRID_FROM_EMAIL: getEnvOptional("SENDGRID_FROM_EMAIL") || "noreply@devicelending.com"
   
 };
 

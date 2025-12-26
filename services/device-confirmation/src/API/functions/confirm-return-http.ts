@@ -41,6 +41,21 @@ export async function confirmReturnHttp(
 
     ctx.log("✅ Return confirmed", { staffId, reservationId, deviceId });
 
+    // Send email notification to student (optional - doesn't block if it fails)
+    try {
+      if (body.studentEmail) {
+        await appServices.emailService.sendReturnConfirmationEmail(
+          body.studentEmail,
+          body.studentName || "Student",
+          body.deviceName || "Device",
+          new Date().toISOString(),
+          ctx
+        );
+      }
+    } catch (emailError: any) {
+      ctx.warn("⚠️ Email notification failed (non-blocking):", emailError.message);
+    }
+
     return {
       status: 200,
       jsonBody: result

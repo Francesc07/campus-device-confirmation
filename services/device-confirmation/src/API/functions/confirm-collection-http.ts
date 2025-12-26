@@ -41,6 +41,22 @@ export async function confirmCollectionHttp(
 
     ctx.log("✅ Collection confirmed", { staffId, reservationId, deviceId });
 
+    // Send email notification to student (optional - doesn't block if it fails)
+    try {
+      const snapshot = await appServices.snapshotRepo.getByReservationId(reservationId);
+      if (snapshot && body.studentEmail) {
+        await appServices.emailService.sendCollectionConfirmationEmail(
+          body.studentEmail,
+          body.studentName || "Student",
+          body.deviceName || "Device",
+          snapshot.dueDate,
+          ctx
+        );
+      }
+    } catch (emailError: any) {
+      ctx.warn("⚠️ Email notification failed (non-blocking):", emailError.message);
+    }
+
     return {
       status: 200,
       jsonBody: result

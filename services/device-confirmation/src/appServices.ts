@@ -1,5 +1,6 @@
 import { CosmosConfirmationActionRepository } from "./Infrastructure/Persistence/CosmosConfirmationActionRepository";
 import { ConfirmationEventPublisher } from "./Infrastructure/EventGrid/ConfirmationEventPublisher";
+import { EmailNotificationService } from "./Infrastructure/Email/EmailNotificationService";
 
 import { ConfirmCollectionUseCase } from "./Application/UseCases/ConfirmCollectionUseCase";
 import { ConfirmReturnUseCase } from "./Application/UseCases/ConfirmReturnUseCase";
@@ -10,13 +11,16 @@ import { ConfirmReturnHandler } from "./Application/Handlers/ConfirmReturnHandle
 import { ListConfirmationActionsHandler } from "./Application/Handlers/ListConfirmationActionsHandler";
 import { CosmosReservationSnapshotRepository } from "./Infrastructure/Persistence/CosmosReservationSnapshotRepository";
 
+// Infrastructure services
 const confirmationRepo = new CosmosConfirmationActionRepository();
 const snapshotRepo = new CosmosReservationSnapshotRepository();
 const eventPublisher = new ConfirmationEventPublisher(
   process.env.EVENTGRID_TOPIC_ENDPOINT!,
   process.env.EVENTGRID_TOPIC_KEY!
 );
+const emailService = new EmailNotificationService();
 
+// Use cases
 const confirmCollectionUseCase = new ConfirmCollectionUseCase(
   confirmationRepo,
   eventPublisher,
@@ -33,6 +37,7 @@ const listConfirmationActionsUseCase = new ListConfirmationActionsUseCase(
   confirmationRepo
 );
 
+// Handlers
 const confirmCollectionHandler = new ConfirmCollectionHandler(confirmCollectionUseCase);
 const confirmReturnHandler = new ConfirmReturnHandler(confirmReturnUseCase);
 const listConfirmationActionsHandler = new ListConfirmationActionsHandler(
@@ -43,6 +48,7 @@ export const appServices = {
   snapshotRepo,
   confirmationRepo,
   eventPublisher,
+  emailService,
   confirmCollectionUseCase,
   confirmReturnUseCase,
   listConfirmationActionsUseCase,
